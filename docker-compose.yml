@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  # Base de Datos PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    container_name: boat_tours_db
+    ports:
+      - "${DB_PORT}:5432"
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - boat_net
+
+  # Interfaz gráfica para ver la DB (Opcional, pero recomendada)
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: boat_tours_pgadmin
+    ports:
+      - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    depends_on:
+      - postgres
+    networks:
+      - boat_net
+
+volumes:
+  postgres_data:
+
+networks:
+  boat_net:
+    driver: bridge

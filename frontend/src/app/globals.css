@@ -1,0 +1,9 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Puedes ignorar las líneas rojas de advertencia en VS Code */
+body {
+  background-color: #f8fafc;
+  color: #1e293b;
+}

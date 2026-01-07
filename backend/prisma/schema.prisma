@@ -1,0 +1,120 @@
+// 1. Configuración
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 2. Enums (Estados y Roles)
+enum Role {
+  CLIENT
+  ADMIN
+}
+
+enum BookingStatus {
+  PENDING_PAYMENT // Creada, esperando pago
+  CONFIRMED       // Pagada y confirmada
+  CANCELLED       // Cancelada por usuario o admin
+  REFUNDED        // Reembolsada
+}
+
+enum PaymentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// 3. Modelos (Tablas)
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  fullName  String
+  phone     String?
+  role      Role     @default(CLIENT)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  bookings  Booking[] // Relación: Un usuario tiene muchas reservas
+}
+
+model Tour {
+  id          String   @id @default(uuid())
+  title       String
+  description String   @db.Text
+  images      String[] // Array de URLs de imágenes
+  duration    Int      // En minutos
+  basePrice   Decimal  @db.Decimal(10, 2)
+  isActive    Boolean  @default(true)
+
+  maxCapacity Int
+  
+  // Relación con los horarios disponibles
+  schedules   TourSchedule[]
+}
+
+model TourSchedule {
+  id             String   @id @default(uuid())
+  startTime      DateTime // Fecha y hora exacta del zarpe
+  priceOverride  Decimal? @db.Decimal(10, 2) // Opcional: si esta fecha es más cara/barata
+  maxCapacity    Int      // Cupos totales para esta salida
+  
+  // Campo calculado simple para control rápido
+  // Nota: La lógica real de disponibilidad sumará los pasajeros de las bookings confirmadas
+  isClosed       Boolean  @default(false) 
+
+  tourId         String
+  tour           Tour     @relation(fields: [tourId], references: [id])
+  
+  bookings       Booking[]
+}
+
+model Booking {
+  id            String        @id @default(uuid())
+  ticketCode    String        @unique // Código alfanumérico para el ticket (ej: BT-8832)
+  totalPrice    Decimal       @db.Decimal(10, 2)
+  status        BookingStatus @default(PENDING_PAYMENT)
+  
+  // Datos de contacto (por si compra como invitado o para notificaciones)
+  contactEmail  String
+  contactPhone  String?
+  
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // Relaciones
+  userId        String?       // Puede ser nulo (Guest checkout)
+  user          User?         @relation(fields: [userId], references: [id])
+  
+  scheduleId    String
+  schedule      TourSchedule  @relation(fields: [scheduleId], references: [id])
+  
+  passengers    Passenger[]
+  payment       Payment?
+}
+
+model Passenger {
+  id        String  @id @default(uuid())
+  fullName  String
+  age       Int?
+  
+  bookingId String
+  booking   Booking @relation(fields: [bookingId], references: [id])
+}
+
+model Payment {
+  id                String        @id @default(uuid())
+  amount            Decimal       @db.Decimal(10, 2)
+  provider          String        @default("MERCADOPAGO")
+  providerPaymentId String?       @unique // ID que devuelve MP
+  status            PaymentStatus @default(PENDING)
+  
+  createdAt         DateTime      @default(now())
+
+  bookingId         String        @unique
+  booking           Booking       @relation(fields: [bookingId], references: [id])
+}
