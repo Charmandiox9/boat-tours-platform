@@ -1,6 +1,7 @@
 // src/app/tours/[id]/page.tsx
 import BookingForm from '@/components/BookingForm';
 import { Tour, Schedule } from '@/types';
+import Link from 'next/link';
 
 // 1. Función para obtener el Tour (Con Logs y sin caché)
 async function getTour(id: string): Promise<Tour | null> {
@@ -63,7 +64,7 @@ export default async function TourDetailsPage({ params }: { params: Promise<{ id
         <h2 className="text-2xl font-bold mb-2">Tour no encontrado</h2>
         <p>ID Buscado: <code className="bg-slate-200 px-2 py-1 rounded">{id}</code></p>
         <p className="mt-4 text-sm">Revisa la terminal de VS Code para ver los logs de error.</p>
-        <a href="/" className="mt-8 text-blue-600 hover:underline">Volver al inicio</a>
+        <Link href="/" className="mt-8 text-blue-600 hover:underline">Volver al inicio</Link>
       </div>
     );
   }

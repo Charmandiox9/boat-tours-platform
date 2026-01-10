@@ -100,6 +100,7 @@ model Booking {
 model Passenger {
   id        String  @id @default(uuid())
   fullName  String
+  rut       String
   age       Int?
   
   bookingId String

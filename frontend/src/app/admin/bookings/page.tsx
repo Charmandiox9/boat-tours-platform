@@ -1,4 +1,5 @@
 // src/app/admin/bookings/page.tsx
+
 import { Booking } from '@prisma/client'; // O definimos una interfaz manual si da error
 import CancelBookingButton from '@/components/admin/CancelBookingButton';
 
@@ -10,6 +11,7 @@ interface BookingWithDetails {
   totalPrice: string;
   status: string; // PENDING_PAYMENT, CONFIRMED, etc.
   createdAt: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   passengers: any[];
   schedule: {
     startTime: string;

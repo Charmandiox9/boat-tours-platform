@@ -7,12 +7,13 @@ export class BookingsService {
   constructor(private prisma: PrismaService) {}
 
   async create(data: any) {
-    const { scheduleId, contactEmail, contactPhone, passengers } = data;
+    // Extraemos userId por si viene del frontend (usuario logueado)
+    const { scheduleId, contactEmail, contactPhone, passengers, userId } = data;
 
-    // INICIO DE TRANSACCIÓN (Todo o nada)
+    // INICIO DE TRANSACCIÓN
     return this.prisma.$transaction(async (tx) => {
       
-      // 1. Buscar el Horario y sus reservas actuales
+      // 1. Buscar el Horario y validar existencia
       const schedule = await tx.tourSchedule.findUnique({
         where: { id: scheduleId },
         include: { bookings: { include: { passengers: true } }, tour: true }
@@ -21,7 +22,6 @@ export class BookingsService {
       if (!schedule) throw new NotFoundException('Horario no encontrado');
 
       // 2. Calcular cupos ocupados
-      // Sumamos todos los pasajeros de todas las reservas que NO estén canceladas
       const occupiedSeats = schedule.bookings.reduce((total, booking) => {
         if (booking.status === 'CANCELLED') return total;
         return total + booking.passengers.length;
@@ -35,31 +35,67 @@ export class BookingsService {
       }
 
       // 4. Calcular Precio Total
-      // Si el schedule tiene precio especial lo usa, sino usa el base del tour
       const unitPrice = Number(schedule.priceOverride ?? schedule.tour.basePrice);
       const totalPrice = unitPrice * requestedSeats;
 
-      // 5. Crear la Reserva
+      // ---------------------------------------------------------
+      // LÓGICA DE USUARIO: Si no viene userId, intentamos buscarlo por email
+      // ---------------------------------------------------------
+      let finalUserId = userId;
+
+      if (!finalUserId && contactEmail) {
+        const existingUser = await tx.user.findUnique({
+          where: { email: contactEmail }
+        });
+        if (existingUser) {
+          finalUserId = existingUser.id;
+        }
+      }
+
+      // 5. Crear la Reserva + Pasajeros + Pago (Todo junto)
       const newBooking = await tx.booking.create({
         data: {
-          scheduleId,
+          schedule: { connect: { id: scheduleId } },
           contactEmail,
           contactPhone,
           totalPrice,
-          ticketCode: this.generateTicketCode(), // Generamos un código único
-          status: 'PENDING_PAYMENT', // Nace pendiente de pago
+          ticketCode: this.generateTicketCode(),
+          status: 'PENDING_PAYMENT',
+          
+          // A. Conectar Usuario (Si encontramos uno)
+          user: finalUserId ? { connect: { id: finalUserId } } : undefined,
+
+          // B. Crear Pasajeros
           passengers: {
-            create: passengers.map(p => ({
+            create: passengers.map((p: any) => ({
               fullName: p.fullName,
               age: p.age
             }))
+          },
+
+          // C. Crear registro de Pago AUTOMÁTICAMENTE (Esto faltaba)
+          payment: {
+            create: {
+              amount: totalPrice,
+              provider: 'MERCADOPAGO',
+              status: 'PENDING'
+              // providerPaymentId se queda nulo hasta que MercadoPago responda
+            }
           }
         },
-        include: { passengers: true }
+        include: { 
+          passengers: true,
+          payment: true // Retornamos el pago para confirmar que se creó
+        }
       });
 
       return newBooking;
     });
+  }
+
+  // Método auxiliar (asegúrate de tenerlo en la clase)
+  private generateTicketCode() {
+    return `TKT-${Date.now().toString().slice(-6)}-${Math.floor(Math.random() * 100)}`;
   }
 
   async findOne(id: string) {
@@ -130,10 +166,5 @@ export class BookingsService {
         status: status as BookingStatus 
       }
     });
-  }
-
-  // Utilidad simple para generar códigos tipo "TICKET-X9Z"
-  private generateTicketCode() {
-    return 'TKT-' + Math.random().toString(36).substring(2, 8).toUpperCase();
   }
 }

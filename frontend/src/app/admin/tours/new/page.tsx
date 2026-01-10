@@ -1,5 +1,5 @@
 // src/app/admin/tours/new/page.tsx
-'use client'; // Necesitamos interactividad
+'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -8,13 +8,15 @@ export default function NewTourPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   
+  // Estado para el archivo seleccionado
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     basePrice: '',
     duration: '',
     maxCapacity: '',
-    imageUrl: ''
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -22,27 +24,32 @@ export default function NewTourPage() {
     setLoading(true);
 
     try {
+      // 1. Usamos FormData en lugar de JSON
+      const data = new FormData();
+      data.append('title', formData.title);
+      data.append('description', formData.description);
+      data.append('basePrice', formData.basePrice);
+      data.append('duration', formData.duration);
+      data.append('maxCapacity', formData.maxCapacity);
+      
+      // 2. Adjuntamos el archivo si existe
+      if (selectedFile) {
+        data.append('image', selectedFile);
+      }
+
+      // 3. Enviamos al backend (Nota: NO poner header Content-Type, fetch lo pone solo)
       const res = await fetch('http://localhost:3001/tours', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: formData.title,
-          description: formData.description,
-          basePrice: Number(formData.basePrice),
-          duration: Number(formData.duration),
-          maxCapacity: Number(formData.maxCapacity),
-          images: formData.imageUrl ? [formData.imageUrl] : []
-        })
+        body: data, 
       });
 
       if (!res.ok) throw new Error('Error al crear tour');
 
-      // Redirigir al listado
       router.push('/admin/tours');
-      router.refresh(); // Actualizar datos
+      router.refresh();
 
     } catch (error) {
-      alert('Error creando el tour. Revisa la consola.');
+      alert('Error creando el tour.');
       console.error(error);
     } finally {
       setLoading(false);
@@ -65,8 +72,8 @@ export default function NewTourPage() {
           <input 
             name="title" required
             onChange={handleChange}
-            className="w-full border border-slate-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 outline-none"
-            placeholder="Ej: Paseo Romántico al Atardecer"
+            className="w-full border border-slate-300 rounded-lg p-3 outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Ej: Pesca Deportiva"
           />
         </div>
 
@@ -76,29 +83,27 @@ export default function NewTourPage() {
           <textarea 
             name="description" required rows={4}
             onChange={handleChange}
-            className="w-full border border-slate-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+            className="w-full border border-slate-300 rounded-lg p-3 outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Describe la experiencia..."
           />
         </div>
 
-        {/* Grid de Precio y Duración */}
+        {/* Precio y Duración */}
         <div className="grid grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-bold text-slate-700 mb-2">Precio Base ($)</label>
             <input 
               name="basePrice" type="number" required
               onChange={handleChange}
-              className="w-full border border-slate-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 outline-none"
-              placeholder="50000"
+              className="w-full border border-slate-300 rounded-lg p-3 outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <div>
-            <label className="block text-sm font-bold text-slate-700 mb-2">Duración (minutos)</label>
+            <label className="block text-sm font-bold text-slate-700 mb-2">Duración (min)</label>
             <input 
               name="duration" type="number" required
               onChange={handleChange}
-              className="w-full border border-slate-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 outline-none"
-              placeholder="60"
+              className="w-full border border-slate-300 rounded-lg p-3 outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
         </div>
@@ -106,23 +111,28 @@ export default function NewTourPage() {
         {/* Capacidad e Imagen */}
         <div className="grid grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-bold text-slate-700 mb-2">Capacidad Máxima</label>
+            <label className="block text-sm font-bold text-slate-700 mb-2">Capacidad</label>
             <input 
               name="maxCapacity" type="number" required
               onChange={handleChange}
-              className="w-full border border-slate-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 outline-none"
-              placeholder="10"
+              className="w-full border border-slate-300 rounded-lg p-3 outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
+          
+          {/* INPUT DE ARCHIVO (NUEVO) */}
           <div>
-            <label className="block text-sm font-bold text-slate-700 mb-2">URL de Imagen</label>
+            <label className="block text-sm font-bold text-slate-700 mb-2">Imagen de Portada</label>
             <input 
-              name="imageUrl" type="url" required
-              onChange={handleChange}
-              className="w-full border border-slate-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 outline-none"
-              placeholder="https://..."
+              type="file"
+              accept="image/*"
+              required
+              onChange={(e) => {
+                if (e.target.files && e.target.files[0]) {
+                  setSelectedFile(e.target.files[0]);
+                }
+              }}
+              className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
             />
-            <p className="text-xs text-slate-400 mt-1">Usa una URL de Unsplash o similar por ahora.</p>
           </div>
         </div>
 
@@ -139,7 +149,7 @@ export default function NewTourPage() {
             disabled={loading}
             className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-2 rounded-lg font-bold transition-colors disabled:opacity-50"
           >
-            {loading ? 'Guardando...' : 'Crear Tour'}
+            {loading ? 'Subiendo...' : 'Crear Tour'}
           </button>
         </div>
 

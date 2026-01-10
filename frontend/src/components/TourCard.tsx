@@ -1,23 +1,23 @@
-'use client'; // <--- IMPORTANTE: Agregamos esto al inicio
+'use client';
 
-import { Tour } from '@/types';
-import { useRouter } from 'next/navigation'; // Usamos el router de navegación
+import { Tour } from '@/types'; // Asegúrate de importar el tipo nuevo
+import { useRouter } from 'next/navigation';
 
 export default function TourCard({ tour }: { tour: Tour }) {
   const router = useRouter();
 
-  const imageSrc = tour.images.length > 0 
+  // Lógica segura para obtener la imagen:
+  // Si tour.images existe y tiene elementos, usa el primero. Si no, usa el placeholder.
+  const imageSrc = (tour.images && tour.images.length > 0) 
     ? tour.images[0] 
-    : 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?q=80&w=2070&auto=format&fit=crop'; 
+    : 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?q=80&w=2070'; 
 
   const handleNavigate = () => {
-    console.log("🖱 Click detectado en tour:", tour.id); // Debug en consola
     router.push(`/tours/${tour.id}`);
   };
 
   return (
     <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden border border-slate-100 flex flex-col h-full">
-      {/* Imagen */}
       <div className="h-48 overflow-hidden relative">
         <img 
           src={imageSrc} 
@@ -29,7 +29,6 @@ export default function TourCard({ tour }: { tour: Tour }) {
         </div>
       </div>
 
-      {/* Contenido */}
       <div className="p-5 flex flex-col flex-grow">
         <h3 className="text-xl font-bold text-slate-800 mb-2">{tour.title}</h3>
         <p className="text-slate-500 text-sm line-clamp-2 mb-4 flex-grow">
@@ -39,15 +38,15 @@ export default function TourCard({ tour }: { tour: Tour }) {
         <div className="flex items-center justify-between mt-auto pt-4 border-t border-slate-100">
           <div className="flex flex-col">
             <span className="text-xs text-slate-400">Desde</span>
+            {/* OJO: basePrice viene como Decimal, forzamos conversión a Number */}
             <span className="text-lg font-bold text-blue-600">
               ${Number(tour.basePrice).toLocaleString()}
             </span>
           </div>
           
-          {/* Cambiamos Link por Button con onClick */}
           <button 
             onClick={handleNavigate}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer z-10"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
           >
             Reservar
           </button>

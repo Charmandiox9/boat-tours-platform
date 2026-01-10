@@ -11,7 +11,7 @@ export default function AdminLayout({
       {/* SIDEBAR - Barra Lateral */}
       <aside className="w-64 bg-slate-900 text-white flex flex-col fixed h-full">
         <div className="p-6 border-b border-slate-800">
-          <h2 className="text-2xl font-bold text-blue-400">BoatAdmin ⚓</h2>
+          <h2 className="text-2xl font-bold text-blue-400">YudiBel ⚓</h2>
           <p className="text-xs text-slate-400 mt-1">Panel de Control</p>
         </div>
 

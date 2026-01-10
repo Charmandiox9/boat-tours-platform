@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css"; // <--- ¡ESTA LÍNEA ES OBLIGATORIA! 
+import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/layout/Footer";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -16,7 +18,18 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es">
-      <body className={inter.className}>{children}</body>
+      <body className={inter.className}>
+        {/* 2. Colocamos el Navbar ARRIBA */}
+        <Navbar />
+        
+        {/* El contenido de cada página */}
+        <main className="min-h-screen">
+          {children}
+        </main>
+
+        {/* 3. Colocamos el Footer ABAJO */}
+        <Footer />
+      </body>
     </html>
   );
 }
